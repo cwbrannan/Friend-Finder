@@ -1,0 +1,228 @@
+$(document).ready(function () {
+
+
+    //This function creates the 10 drop downs for the questions each with 5 numbers to choose from
+
+    function createQuestions() {
+        var idNum = 1;
+
+
+        for (var i = 0; i < 10; i++) {
+
+            var newSelect = $("<select>");
+            newSelect.addClass("form-control")
+
+            newSelect.attr("id", "q" + idNum);
+
+            $("#chooseSelect-" + idNum).html(newSelect);
+
+            for (var j = 0; j < 6; j++) {
+
+                if (j === 0) {
+                    var options = $("<option>");
+                    options.text("Please Choose A Number");
+                    newSelect.append(options);
+                } else if (j === 1) {
+                    var options = $("<option>");
+                    options.attr("value", j);
+                    options.text(j + " - (Strongly Disagree)");
+                    newSelect.append(options);
+                } else if (j === 5) {
+                    var options = $("<option>");
+                    options.attr("value", j);
+                    options.text(j + " - (Strongly Agree)");
+                    newSelect.append(options);
+                } else {
+
+                    var options = $("<option>");
+                    options.attr("value", j);
+                    options.text(j);
+                    newSelect.append(options);
+                }
+
+            }
+
+            idNum++
+        }
+
+    }
+
+    createQuestions();
+
+    //here is the submit button function which takes in the user values and posts them...
+
+    $("form").submit(function (event) {
+
+        event.preventDefault();
+
+        var newPerson = {
+            name: $("#name").val().trim(),
+            photo: $("#photo").val().trim(),
+            scores: []
+        }
+
+
+
+        for (var i = 1; i < 11; i++) {
+
+            newPerson.scores.push($("#q" + i).val())
+            // console.log(newPerson.scores)
+        }
+
+        if (newPerson.scores.includes("Please Choose A Number")) {
+
+            alert("Please Answer All The Questions")
+            // newPerson.scores = [];
+
+        } else {
+
+            var matches = [];
+            var currentEntry;
+            var currentName;
+            var currentScores;
+
+            $.post({
+                    url: "/api/new",
+                    contentType: "application/json",
+                    data: JSON.stringify(newPerson)
+                })
+                .done(function (data) {
+                    
+                    
+                });
+
+            newPerson.name = newPerson.name.replace(/\s+/g, " ").toLowerCase();
+
+            $.get("/api", function (data) {
+                console.log("This is the 1st GET request");
+                console.log(data);
+                for (var i = 0; i < data.length; i++) {
+                    if (i < data.length - 1) {
+                        matches.push(data[i]);
+                    } else {
+                        currentEntry = data[i];
+                        currentName = data[i].name;
+                        currentScores = data[i].scores
+                    }
+                }
+                console.log("This is the matches")
+                console.log(matches)
+
+
+
+                $("#name").val("")
+                $("#photo").val("")
+
+                for (var i = 1; i < 11; i++) {
+                    $("#q" + i).val("Please Choose A Number");
+                }
+
+                if (matches.length < 2) {
+
+                    alert("Not enough friends have entered in... ")
+                } else {
+
+                    var names = [];
+                    var scores = [];
+                    var add = 0
+
+                    for (var i = 0; i < matches.length - 1; i++) {
+
+                        var currentMatch = matches[i];
+                        names.push(currentMatch.name);
+                        console.log(currentMatch);
+
+                        for (var j = 0; j < currentMatch.scores.length; j++) {
+
+                            add += Math.abs(currentEntry.scores[j] - currentMatch.scores[j])
+                            //currentEntry.scores[j]
+
+                        }
+
+                        scores.push(add);
+
+                        add = 0;
+
+
+
+                    }
+
+
+
+                    bubbleSort(scores, names);
+
+                    function bubbleSort(a, b) {
+                        var swapped;
+                        do {
+                            swapped = false;
+                            for (var i = 0; i < a.length - 1; i++) {
+                                if (a[i] > a[i + 1]) {
+                                    var temp = a[i];
+                                    a[i] = a[i + 1];
+                                    a[i + 1] = temp;
+
+                                    var temp = b[i];
+                                    b[i] = b[i + 1];
+                                    b[i + 1] = temp;
+                                    swapped = true;
+                                }
+                            }
+                        } while (swapped);
+                    }
+
+                    // console.log(names);
+                    // console.log(scores);
+
+
+                    if (scores.length === 1) {
+                        names[0] = names[0].toUpperCase() + names[0].substring(1);
+                        $("#friend").html(names[0] + "!")
+                        $("#mymodal").show();
+
+                        // alert("Your match is... " + names[0]);
+                    } else if (scores.length > 1) {
+                        var closerMatches = [];
+                        for (var i = 0; i < scores.length; i++) {
+                            if (scores[i] === scores[i + 1]) {
+                                closerMatches.push(names[i]);
+
+                            } else {
+                                closerMatches.push(names[i]);
+                                break;
+                            }
+
+                        }
+
+                        if (closerMatches.length > 0) {
+                            // console.log(closerMatches);
+                            var randomMatch = closerMatches[Math.floor(Math.random() * closerMatches.length)];
+                            randomMatch = randomMatch[0].toUpperCase() + randomMatch.substring(1);
+                            $("#friend").html(randomMatch + "!")
+                            $("#mymodal").show();
+                            // alert("Your match is... " + randomMatch);
+                        } else {
+                            names[0] = names[0].toUpperCase() + names[0].substring(1);
+                            $("#friend").html(names[0] + "!")
+                            $("#mymodal").show();
+                            // alert("Your match is... " + names[0]);
+                        }
+
+                    }
+
+
+                }
+                
+            })
+
+        }
+
+
+
+
+    })
+
+    $("#close").click(function () {
+        $("#mymodal").hide();
+    })
+
+})
